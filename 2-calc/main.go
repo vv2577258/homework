@@ -68,18 +68,19 @@ func inputNumbers() ([]int, error) {
 		fmt.Println(normalizeValue)
 		curNum, err := strconv.Atoi(normalizeValue)
 
-		if err == nil {
-			numbersArr = append(numbersArr, curNum)
+		if err != nil {
+			return numbersArr, errors.New("invalid number")
 		}
+		numbersArr = append(numbersArr, curNum)
 
 	}
 
 	return numbersArr, nil
 }
 
-func calculate(operation string, arrNum []int) (int, error) {
+func calculate(operation string, arrNum []int) (float64, error) {
 
-	var result int
+	var result float64
 	var sum int
 
 	switch operation {
@@ -87,12 +88,12 @@ func calculate(operation string, arrNum []int) (int, error) {
 		for _, number := range arrNum {
 			sum += number
 		}
-		result = sum / len(arrNum)
+		result = float64(sum) / float64(len(arrNum))
 	case "SUM":
 		for _, number := range arrNum {
 			sum += number
 		}
-		result = sum
+		result = float64(sum)
 	case "MED":
 		result = calcMedian(arrNum)
 	default:
@@ -102,19 +103,19 @@ func calculate(operation string, arrNum []int) (int, error) {
 	return result, nil
 }
 
-func calcMedian(arrNum []int) int {
+func calcMedian(arrNum []int) float64 {
 	dataCopy := make([]int, len(arrNum))
 	copy(dataCopy, arrNum)
 
 	sort.Ints(dataCopy)
-	var median int
+	var median float64
 	l := len(dataCopy)
 	if l == 0 {
 		return 0
 	} else if l%2 == 0 {
-		median = (dataCopy[l/2-1] + dataCopy[l/2]) / 2
+		median = (float64(dataCopy[l/2-1] + dataCopy[l/2])) / 2
 	} else {
-		median = dataCopy[l/2]
+		median = float64(dataCopy[l/2])
 	}
 
 	return median
