@@ -101,6 +101,11 @@ func inputCurrencyTo(currencyFrom string) string {
 }
 
 func convertAmount(amount float64, currencyFrom string, currencyTo string) string {
+
+	USDMap := map[string]float64{
+		"EUR": 0.849, "RUB": 83.17,
+	}
+
 	const USDtoEUR = 0.849
 	const USDtoRUB = 83.17
 	const EURtoRUB = USDtoRUB / USDtoEUR
@@ -109,9 +114,9 @@ func convertAmount(amount float64, currencyFrom string, currencyTo string) strin
 
 	switch {
 	case currencyFrom == USD && currencyTo == EUR:
-		convertedAmount = amount * USDtoEUR
+		convertedAmount = amount * USDMap["EUR"]
 	case currencyFrom == USD && currencyTo == RUB:
-		convertedAmount = amount * USDtoRUB
+		convertedAmount = amount * USDMap["RUB"]
 	case currencyFrom == EUR && currencyTo == RUB:
 		convertedAmount = amount * EURtoRUB
 	case currencyFrom == EUR && currencyTo == USD:
