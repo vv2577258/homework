@@ -1,21 +1,33 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 )
 
-const EUR = "EUR"
-const USD = "USD"
-const RUB = "RUB"
+const (
+	EUR = "EUR"
+	USD = "USD"
+	RUB = "RUB"
+)
+
+var reader = bufio.NewReader(os.Stdin)
+
+// Курс к USD: сколько USD в одной единице валюты
+var toUSD = map[string]float64{
+	USD: 1.0,         // 1 USD = 1 USD
+	EUR: 1.0 / 0.849, // 1 EUR = 1/0.849 USD
+	RUB: 1.0 / 83.17, // 1 RUB = 1/83.17 USD
+}
 
 func main() {
-
-	currencyFrom := inputCurrency()
-
-	fmt.Printf("Вы ввели  %s\n", currencyFrom)
+	currencyFrom := inputCurrency("Введите исходную валюту. Доступные: EUR, USD, RUB")
+	fmt.Printf("Вы ввели: %s\n", currencyFrom)
 
 	amount := inputAmount()
-	fmt.Printf("Вы ввели  %.2f\n", amount)
+	fmt.Printf("Вы ввели: %.2f\n", amount)
 
 	currencyTo := inputCurrencyTo(currencyFrom)
 
@@ -26,113 +38,64 @@ func main() {
 
 func inputAmount() float64 {
 	var amount float64
-
 	for {
-		fmt.Printf("Введите сумму\n")
-		fmt.Scan(&amount)
-
-		if amount <= 0 {
-			continue
+		fmt.Print("Введите сумму: ")
+		_, _ = fmt.Scan(&amount)
+		if amount > 0 {
+			return amount
 		}
-
-		break
+		fmt.Println("Сумма должна быть больше нуля.")
 	}
-
-	return amount
 }
 
-func inputCurrency() string {
-	var curCurrency string
-
+func inputCurrency(prompt string) string {
 	for {
-		fmt.Printf("Введите исходную валюту. Доступные валюты: %s, %s, %s\n", EUR, USD, RUB)
-		fmt.Scanln(&curCurrency)
+		fmt.Println(prompt)
+		text, _ := reader.ReadString('\n')
+		cur := strings.ToUpper(strings.TrimSpace(text))
 
-		isValid := checkCurrency(curCurrency)
-
-		if !isValid {
-
-			continue
+		if checkCurrency(cur) {
+			return cur
 		}
-
-		break
+		// Сообщение уже печатается в checkCurrency
 	}
-
-	return curCurrency
 }
 
 func inputCurrencyTo(currencyFrom string) string {
-
-	var avalibleCurrency string
-
-	switch currencyFrom {
-	case EUR:
-		avalibleCurrency = fmt.Sprintf("%s, %s", USD, RUB)
-	case USD:
-		avalibleCurrency = fmt.Sprintf("%s, %s", EUR, RUB)
-	case RUB:
-		avalibleCurrency = fmt.Sprintf("%s, %s", USD, EUR)
-	default:
-		panic("AVAILIBLE_CURRENCY_ERROR")
+	// Список доступных валют формируем из ключей map, исключая исходную
+	available := make([]string, 0, len(toUSD)-1)
+	for cur := range toUSD {
+		if cur != currencyFrom {
+			available = append(available, cur)
+		}
 	}
-
-	var curCurrency string
-
 	for {
-		fmt.Printf("Введите целевую валюту. Доступные валюты: %s\n", avalibleCurrency)
-		fmt.Scanln(&curCurrency)
-		isValid := checkCurrency(curCurrency)
+		fmt.Printf("Введите целевую валюту. Доступные: %s\n", strings.Join(available, ", "))
+		text, _ := reader.ReadString('\n')
+		cur := strings.ToUpper(strings.TrimSpace(text))
 
-		if !isValid {
-
+		if !checkCurrency(cur) {
 			continue
 		}
-
-		if currencyFrom == curCurrency {
-			fmt.Println("Вы ввели некорректную валюту: %s", curCurrency)
-
+		if currencyFrom == cur {
+			fmt.Printf("Вы ввели некорректную валюту: %s (совпадает с исходной)\n", cur)
 			continue
 		}
-
-		break
+		return cur
 	}
-
-	return curCurrency
 }
 
-func convertAmount(amount float64, currencyFrom string, currencyTo string) string {
-	const USDtoEUR = 0.849
-	const USDtoRUB = 83.17
-	const EURtoRUB = USDtoRUB / USDtoEUR
-
-	var convertedAmount float64
-
-	switch {
-	case currencyFrom == USD && currencyTo == EUR:
-		convertedAmount = amount * USDtoEUR
-	case currencyFrom == USD && currencyTo == RUB:
-		convertedAmount = amount * USDtoRUB
-	case currencyFrom == EUR && currencyTo == RUB:
-		convertedAmount = amount * EURtoRUB
-	case currencyFrom == EUR && currencyTo == USD:
-		convertedAmount = amount / USDtoEUR
-	case currencyFrom == RUB && currencyTo == USD:
-		convertedAmount = amount / USDtoRUB
-	case currencyFrom == RUB && currencyTo == EUR:
-		convertedAmount = amount / EURtoRUB
-	}
-
-	normalizeAmount := fmt.Sprintf("%.2f", convertedAmount)
-
-	return normalizeAmount
+// Конвертация через базу USD: amount * toUSD[from] / toUSD[to]
+func convertAmount(amount float64, currencyFrom, currencyTo string) string {
+	usd := amount * toUSD[currencyFrom]
+	target := usd / toUSD[currencyTo]
+	return fmt.Sprintf("%.2f", target)
 }
 
-func checkCurrency(curCurrency string) bool {
-	if curCurrency == EUR || curCurrency == USD || curCurrency == RUB {
-
+func checkCurrency(cur string) bool {
+	if _, ok := toUSD[cur]; ok {
 		return true
 	}
-
-	fmt.Println("Вы ввели некорректную валюту: %s", curCurrency)
+	fmt.Printf("Вы ввели некорректную валюту: %s\n", cur)
 	return false
 }
