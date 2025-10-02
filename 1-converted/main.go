@@ -15,23 +15,24 @@ const (
 
 var reader = bufio.NewReader(os.Stdin)
 
-// Курс к USD: сколько USD в одной единице валюты
-var toUSD = map[string]float64{
-	USD: 1.0,         // 1 USD = 1 USD
-	EUR: 1.0 / 0.849, // 1 EUR = 1/0.849 USD
-	RUB: 1.0 / 83.17, // 1 RUB = 1/83.17 USD
-}
-
 func main() {
-	currencyFrom := inputCurrency("Введите исходную валюту. Доступные: EUR, USD, RUB")
+
+	// Курс к USD: сколько USD в одной единице валюты
+	var toUSD = map[string]float64{
+		USD: 1.0,         // 1 USD = 1 USD
+		EUR: 1.0 / 0.849, // 1 EUR = 1/0.849 USD
+		RUB: 1.0 / 83.17, // 1 RUB = 1/83.17 USD
+	}
+
+	currencyFrom := inputCurrency("Введите исходную валюту. Доступные: EUR, USD, RUB", &toUSD)
 	fmt.Printf("Вы ввели: %s\n", currencyFrom)
 
 	amount := inputAmount()
 	fmt.Printf("Вы ввели: %.2f\n", amount)
 
-	currencyTo := inputCurrencyTo(currencyFrom)
+	currencyTo := inputCurrencyTo(currencyFrom, &toUSD)
 
-	convertedAmount := convertAmount(amount, currencyFrom, currencyTo)
+	convertedAmount := convertAmount(amount, currencyFrom, currencyTo, &toUSD)
 
 	fmt.Printf("Результат: %s\n", convertedAmount)
 }
@@ -48,23 +49,23 @@ func inputAmount() float64 {
 	}
 }
 
-func inputCurrency(prompt string) string {
+func inputCurrency(prompt string, toUSDPointer *map[string]float64) string {
 	for {
 		fmt.Println(prompt)
 		text, _ := reader.ReadString('\n')
 		cur := strings.ToUpper(strings.TrimSpace(text))
 
-		if checkCurrency(cur) {
+		if checkCurrency(cur, toUSDPointer) {
 			return cur
 		}
 		// Сообщение уже печатается в checkCurrency
 	}
 }
 
-func inputCurrencyTo(currencyFrom string) string {
+func inputCurrencyTo(currencyFrom string, toUSDPointer *map[string]float64) string {
 	// Список доступных валют формируем из ключей map, исключая исходную
-	available := make([]string, 0, len(toUSD)-1)
-	for cur := range toUSD {
+	available := make([]string, 0, len(*toUSDPointer)-1)
+	for cur := range *toUSDPointer {
 		if cur != currencyFrom {
 			available = append(available, cur)
 		}
@@ -74,7 +75,7 @@ func inputCurrencyTo(currencyFrom string) string {
 		text, _ := reader.ReadString('\n')
 		cur := strings.ToUpper(strings.TrimSpace(text))
 
-		if !checkCurrency(cur) {
+		if !checkCurrency(cur, toUSDPointer) {
 			continue
 		}
 		if currencyFrom == cur {
@@ -86,14 +87,14 @@ func inputCurrencyTo(currencyFrom string) string {
 }
 
 // Конвертация через базу USD: amount * toUSD[from] / toUSD[to]
-func convertAmount(amount float64, currencyFrom, currencyTo string) string {
-	usd := amount * toUSD[currencyFrom]
-	target := usd / toUSD[currencyTo]
+func convertAmount(amount float64, currencyFrom, currencyTo string, toUSDPointer *map[string]float64) string {
+	usd := amount * (*toUSDPointer)[currencyFrom]
+	target := usd / (*toUSDPointer)[currencyTo]
 	return fmt.Sprintf("%.2f", target)
 }
 
-func checkCurrency(cur string) bool {
-	if _, ok := toUSD[cur]; ok {
+func checkCurrency(cur string, toUSDPointer *map[string]float64) bool {
+	if _, ok := (*toUSDPointer)[cur]; ok {
 		return true
 	}
 	fmt.Printf("Вы ввели некорректную валюту: %s\n", cur)
